@@ -1,0 +1,597 @@
+<!doctype html>
+<html lang="ko">
+<head>
+  <meta charset="utf-8"/>
+  <meta name="viewport" content="width=device-width,initial-scale=1"/>
+  <title>오늘의 병</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Noto+Sans+KR:wght@400;500;600;700&display=swap" rel="stylesheet">
+  <style>
+    :root{
+      --bg:#f6f2eb; --card:#fffdf9; --ink:#2b2622; --muted:#756e66;
+      --wine:#7b2e3d; --wine2:#a44d60; --line:#e8dfd4; --gold:#b89b67;
+      --green:#566b5f;
+    }
+    *{box-sizing:border-box}
+    body{margin:0;font-family:"Noto Sans KR",sans-serif;background:linear-gradient(180deg,#f8f3ec 0%,#f2ece3 100%);color:var(--ink)}
+    .app{max-width:760px;margin:0 auto;min-height:100vh;padding:28px 18px 64px}
+    .top{display:flex;justify-content:space-between;align-items:center;margin-bottom:24px}
+    .brand{font-size:24px;font-weight:700;letter-spacing:-.03em}
+    .brand small{font-size:12px;font-weight:500;color:var(--muted);display:block;margin-top:3px}
+    .pill{font-size:12px;padding:7px 10px;border:1px solid var(--line);border-radius:999px;background:#fff8}
+    .hero{padding:34px 26px;border-radius:28px;background:radial-gradient(circle at 100% 0%,#efe0d6 0,#fffaf4 42%,#fffdf9 100%);border:1px solid var(--line);box-shadow:0 16px 40px #4c382010}
+    .hero h1{font-size:34px;line-height:1.25;margin:0 0 12px;letter-spacing:-.04em}
+    .hero p{color:var(--muted);line-height:1.7;margin:0 0 22px}
+    .btn{border:0;border-radius:15px;padding:14px 18px;font-weight:700;font-size:15px;cursor:pointer}
+    .btn.primary{background:var(--wine);color:white}
+    .btn.ghost{background:#fff;border:1px solid var(--line);color:var(--ink)}
+    .btn.full{width:100%}
+    .progress{height:6px;background:#eee5dc;border-radius:10px;overflow:hidden;margin:18px 0 26px}
+    .progress>div{height:100%;background:var(--wine);width:0%;transition:.3s}
+    .screen{display:none}
+    .screen.active{display:block}
+    .qhead{margin-bottom:18px}
+    .step{font-size:12px;font-weight:700;color:var(--wine);text-transform:uppercase;letter-spacing:.08em}
+    .qhead h2{font-size:25px;margin:8px 0 6px;letter-spacing:-.035em}
+    .qhead p{font-size:14px;color:var(--muted);margin:0}
+    .options{display:grid;grid-template-columns:1fr 1fr;gap:12px}
+    .opt{padding:17px 16px;border:1px solid var(--line);background:var(--card);border-radius:16px;text-align:left;cursor:pointer;min-height:72px;transition:.18s}
+    .opt:hover{transform:translateY(-1px);border-color:#d3c1b3}
+    .opt.selected{border:2px solid var(--wine);background:#fff8f7}
+    .nav{display:flex;gap:10px;margin-top:22px}
+    .nav .btn{flex:1}
+    .tarot-grid{display:grid;grid-template-columns:repeat(4,1fr);gap:12px}
+    .tarot-card{aspect-ratio:2/3;border:0;background:transparent;perspective:900px;cursor:pointer;padding:0;min-height:128px}
+    .tarot-inner{position:relative;width:100%;height:100%;transform-style:preserve-3d;transition:transform .62s cubic-bezier(.2,.7,.2,1)}
+    .tarot-card.revealed .tarot-inner{transform:rotateY(180deg)}
+    .tarot-side{position:absolute;inset:0;border-radius:14px;backface-visibility:hidden;overflow:hidden;box-shadow:0 10px 22px #3a1b2424}
+    .tarot-back{border:1px solid #6f4a55;background:radial-gradient(circle at 50% 38%,#8d4254 0,#6f2737 28%,#3b1e29 100%);display:flex;align-items:center;justify-content:center}
+    .tarot-back::before{content:"✦";font-size:34px;color:#f4dfc7;opacity:.92}
+    .tarot-back::after{content:"";position:absolute;inset:10px;border:1px solid #d6b57b88;border-radius:10px}
+    .tarot-face{transform:rotateY(180deg);background:#f6eddc;border:2px solid var(--gold);display:flex;align-items:stretch;justify-content:stretch}
+    .tarot-face svg{width:100%;height:100%;display:block}
+    .tarot-card.selected .tarot-side{box-shadow:0 0 0 4px #b89b6735,0 12px 26px #3a1b2430}
+    @media(prefers-reduced-motion:reduce){.tarot-inner{transition:none}}
+    .result-grid{display:grid;grid-template-columns:1fr 1fr;gap:16px}
+    .result{background:var(--card);border:1px solid var(--line);border-radius:22px;padding:20px}
+    .result .tag{font-size:11px;font-weight:700;letter-spacing:.08em;color:var(--wine)}
+    .result h3{font-size:21px;margin:8px 0 6px}
+    .meta{font-size:13px;color:var(--muted);line-height:1.6}
+    .score{margin:14px 0 8px;font-size:13px}
+    .bar{height:8px;background:#eee6dc;border-radius:8px;overflow:hidden}
+    .bar i{display:block;height:100%;background:var(--green)}
+    .reason{margin-top:15px;padding-top:15px;border-top:1px solid var(--line);font-size:14px;line-height:1.85;word-break:keep-all}
+    .card-meaning{background:#33232a;color:#fff;border-radius:20px;padding:18px;margin-bottom:16px}
+    .card-meaning b{color:#f1cbd4}
+    .footer-note{text-align:center;color:var(--muted);font-size:12px;margin-top:24px;line-height:1.6}
+    @media(max-width:600px){
+      .options,.result-grid{grid-template-columns:1fr}
+      .tarot-grid{grid-template-columns:repeat(3,1fr)}
+      .hero h1{font-size:29px}
+    }
+  </style>
+</head>
+<body>
+<div class="app">
+  <div class="top">
+    <div class="brand">오늘의 병<small>Tarot × Wine Curation</small></div>
+    <div class="pill" id="statusPill">MVP</div>
+  </div>
+
+  <section id="home" class="screen active">
+    <div class="hero">
+      <h1>오늘의 당신에게<br>어울리는 한 병을 찾아드릴게요.</h1>
+      <p>선호하는 맛 4문항과 오늘의 상황 4문항만 답하면, 마지막에 메이저 아르카나 한 장이 오늘의 추천 방향을 바꿉니다.</p>
+      <button class="btn primary" onclick="startQuiz()">추천 시작하기</button>
+    </div>
+  </section>
+
+  <section id="quiz" class="screen">
+    <div class="progress"><div id="progressBar"></div></div>
+    <div class="qhead">
+      <div class="step" id="stepLabel"></div>
+      <h2 id="questionText"></h2>
+      <p id="questionHelp"></p>
+    </div>
+    <div id="options" class="options"></div>
+    <div class="nav">
+      <button class="btn ghost" onclick="prevQuestion()">이전</button>
+      <button class="btn primary" id="nextBtn" onclick="nextQuestion()">다음</button>
+    </div>
+  </section>
+
+  <section id="tarot" class="screen">
+    <div class="progress"><div style="width:95%"></div></div>
+    <div class="qhead">
+      <div class="step">STEP 3 · TAROT</div>
+      <h2>오늘의 카드를 한 장 골라주세요.</h2>
+      <p>마음이 가는 카드 한 장을 골라 뒤집어보세요. 선택한 순간 오늘의 카드가 공개됩니다.</p>
+    </div>
+    <div id="tarotGrid" class="tarot-grid"></div>
+    <div class="nav">
+      <button class="btn ghost" onclick="drawRandom()">랜덤으로 뽑기</button>
+      <button class="btn primary" onclick="showResult()">추천 보기</button>
+    </div>
+  </section>
+
+  <section id="result" class="screen">
+    <div class="card-meaning" id="cardMeaning"></div>
+    <div class="result-grid">
+      <div class="result">
+        <div class="tag">MY TASTE</div>
+        <h3 id="tasteName"></h3>
+        <div class="meta" id="tasteMeta"></div>
+        <div class="score">취향 적합도 <b id="tasteScore"></b></div>
+        <div class="bar"><i id="tasteBar"></i></div>
+        <div class="reason" id="tasteReason"></div>
+      </div>
+      <div class="result">
+        <div class="tag">MY CARD 🔮</div>
+        <h3 id="cardName"></h3>
+        <div class="meta" id="cardMeta"></div>
+        <div class="score">오늘의 추천도 <b id="cardScore"></b></div>
+        <div class="bar"><i id="cardBar"></i></div>
+        <div class="reason" id="cardReason"></div>
+      </div>
+    </div>
+    <div class="nav">
+      <button class="btn ghost" onclick="restart()">다시 해보기</button>
+      <button class="btn primary" onclick="saveProfile()">취향 저장하기</button>
+    </div>
+    <div class="footer-note">현재 버전은 샘플 와인 DB로 동작하는 MVP입니다.<br>실제 서비스에서는 판매 와인 DB와 연결하면 됩니다.</div>
+  </section>
+</div>
+
+<script>
+
+const questions = [
+  {group:"TASTE", id:"F01", q:"가장 좋아하는 맛의 방향은?", help:"평소 입맛에서 가장 가까운 쪽을 골라주세요.", opts:["달콤하고 부드러운 맛","상큼하고 산뜻한 맛","고소하고 진한 맛","깔끔하고 담백한 맛"]},
+  {group:"TASTE", id:"F02", q:"와인의 무게감은 어느 쪽이 좋나요?", help:"가벼운 스타일과 묵직한 스타일 중 선호를 알려주세요.", opts:["아주 가볍고 산뜻하게","가볍고 부드럽게","적당히 묵직하게","진하고 꽉 차게"]},
+  {group:"TASTE", id:"F03", q:"떫거나 쌉싸래한 맛은 어느 정도 괜찮나요?", help:"레드 와인의 탄닌 허용도를 확인해요.", opts:["거의 없는 게 좋아요","조금은 괜찮아요","적당히 있으면 좋아요","강해도 좋아요"]},
+  {group:"TASTE", id:"F04", q:"향은 어느 정도 강한 게 좋나요?", help:"향의 화려함과 복합도를 추정해요.", opts:["은은한 향","적당히 향긋한 향","향이 확실한 편","화려하고 강한 향"]},
+
+  {group:"SITUATION", id:"S01", q:"오늘 누구와 마시나요?", help:"오늘의 장면을 알려주세요.", opts:["혼자","연인·배우자","친구·동료","가족 또는 여러 사람"]},
+  {group:"SITUATION", id:"S02", q:"오늘 와인은 어떤 상황에서 마실 예정인가요?", help:"마시는 장면에 어울리는 스타일을 골라드려요.", opts:["편하게 쉬면서","식사와 함께","이야기하거나 모임에서","특별한 날·선물용"]},
+  {group:"SITUATION", id:"S03", q:"오늘 먹을 음식과 가장 가까운 것은?", help:"페어링에 반영합니다.", opts:["가벼운 음식·해산물","치즈·파스타·닭고기","돼지고기·소고기·진한 양념","음식은 없거나 아직 미정"]},
+  {group:"SITUATION", id:"S04", q:"오늘 어떤 느낌의 와인이 끌리나요?", help:"오늘의 기분과 모험성을 함께 반영해요.", opts:["편안하고 익숙한 느낌","상쾌하고 기분 전환되는 느낌","깊고 분위기 있는 느낌","평소와 다른 재미있는 경험"]}
+];
+
+const tarotCards = [
+ {id:0,name:"The Fool",ko:"바보",keyword:"새로운 시작·가능성",modifier:"EXPLORE"},
+ {id:1,name:"The Magician",ko:"마법사",keyword:"실행·창조·조합",modifier:"COMPLEXITY"},
+ {id:2,name:"The High Priestess",ko:"여사제",keyword:"직관·내면·신비",modifier:"MYSTERY"},
+ {id:3,name:"The Empress",ko:"여황제",keyword:"풍요·감각·충만",modifier:"PLEASURE"},
+ {id:4,name:"The Emperor",ko:"황제",keyword:"구조·권위·안정",modifier:"STRUCTURE"},
+ {id:5,name:"The Hierophant",ko:"교황",keyword:"전통·규범·배움",modifier:"TRADITION"},
+ {id:6,name:"The Lovers",ko:"연인",keyword:"관계·조화·선택",modifier:"PAIRING"},
+ {id:7,name:"The Chariot",ko:"전차",keyword:"추진력·승리·집중",modifier:"FORWARD"},
+ {id:8,name:"Strength",ko:"힘",keyword:"용기·절제된 힘",modifier:"SOFT_POWER"},
+ {id:9,name:"The Hermit",ko:"은둔자",keyword:"성찰·고독·깊이",modifier:"SLOW"},
+ {id:10,name:"Wheel of Fortune",ko:"운명의 수레바퀴",keyword:"변화·우연·전환",modifier:"LUCKY"},
+ {id:11,name:"Justice",ko:"정의",keyword:"균형·판단·공정",modifier:"BALANCE"},
+ {id:12,name:"The Hanged Man",ko:"매달린 사람",keyword:"관점 전환·멈춤",modifier:"OPPOSITE"},
+ {id:13,name:"Death",ko:"죽음",keyword:"끝·변화·재생",modifier:"RESET"},
+ {id:14,name:"Temperance",ko:"절제",keyword:"조화·중용·통합",modifier:"HARMONY"},
+ {id:15,name:"The Devil",ko:"악마",keyword:"욕망·탐닉·집착",modifier:"INDULGENCE"},
+ {id:16,name:"The Tower",ko:"탑",keyword:"충격·붕괴·각성",modifier:"SHOCK"},
+ {id:17,name:"The Star",ko:"별",keyword:"희망·회복·정화",modifier:"REFRESH"},
+ {id:18,name:"The Moon",ko:"달",keyword:"몽환·불확실·감각",modifier:"AROMA_MYSTERY"},
+ {id:19,name:"The Sun",ko:"태양",keyword:"기쁨·활력·명료",modifier:"JOY"},
+ {id:20,name:"Judgement",ko:"심판",keyword:"재평가·각성·두 번째 기회",modifier:"SECOND_CHANCE"},
+ {id:21,name:"The World",ko:"세계",keyword:"완성·통합·성취",modifier:"BEST_MATCH"}
+];
+
+const wines = [
+ {id:"W01",name:"Pazo de Señorans Albariño",type:"WHITE",price:48000,country:"Spain",grape:"Albariño",acidity:5,tannin:1,body:2,aroma:4,oak:1,fresh:5,fruit:3,complex:3,novelty:3,
+  style:"레몬과 청사과, 흰 꽃 향이 맑게 올라오고 짭짤한 미네랄감과 선명한 산미가 이어지는 산뜻한 화이트 와인",
+  mood:"가볍지만 또렷하고, 입안을 깨끗하게 환기해주는 스타일",
+  tags:["LIGHT","SEAFOOD","REFRESH"]},
+ {id:"W02",name:"La Rioja Alta Viña Ardanza",type:"RED",price:78000,country:"Spain",grape:"Tempranillo",acidity:3,tannin:3,body:4,aroma:4,oak:4,fresh:3,fruit:4,complex:5,novelty:2,
+  style:"잘 익은 붉은 과실에 바닐라와 향신료, 숙성에서 오는 가죽과 나무 향이 겹겹이 이어지는 클래식한 리오하 레드",
+  mood:"부드럽지만 깊고, 천천히 마실수록 복합적인 풍미가 드러나는 스타일",
+  tags:["RICH","DEEP","TRADITION"]},
+ {id:"W03",name:"Dr. Loosen Riesling Kabinett",type:"WHITE",price:43000,country:"Germany",grape:"Riesling",acidity:5,tannin:1,body:2,aroma:5,oak:1,fresh:5,fruit:4,complex:4,novelty:3,
+  style:"복숭아와 사과, 시트러스 향이 화사하게 퍼지고 높은 산도가 은은한 과실감과 균형을 이루는 리슬링",
+  mood:"향은 풍성하지만 몸은 가볍고, 생기 있게 이어지는 스타일",
+  tags:["LIGHT","REFRESH","MYSTERY"]},
+ {id:"W04",name:"Whispering Angel Rosé",type:"ROSE",price:52000,country:"France",grape:"Grenache Blend",acidity:4,tannin:1,body:2,aroma:3,oak:1,fresh:5,fruit:4,complex:2,novelty:2,
+  style:"딸기와 복숭아 같은 붉고 밝은 과실 향에 산뜻한 산미가 더해진 드라이한 프로방스 로제",
+  mood:"가볍고 친근하며, 대화를 오래 이어가게 만드는 편안한 스타일",
+  tags:["JOY","CONVERSATION","LIGHT"]},
+ {id:"W05",name:"Catena Malbec",type:"RED",price:39000,country:"Argentina",grape:"Malbec",acidity:3,tannin:4,body:4,aroma:4,oak:3,fresh:2,fruit:5,complex:3,novelty:2,
+  style:"블랙베리와 자두 같은 검은 과실 풍미가 진하고, 탄탄한 탄닌과 은은한 오크가 받쳐주는 말벡",
+  mood:"과실이 풍부하고 힘이 분명해 한 모금부터 존재감이 느껴지는 스타일",
+  tags:["RICH","FORWARD","DEEP"]},
+ {id:"W06",name:"Ruinart Blanc de Blancs",type:"SPARKLING",price:135000,country:"France",grape:"Chardonnay",acidity:5,tannin:1,body:3,aroma:4,oak:2,fresh:5,fruit:3,complex:5,novelty:2,
+  style:"시트러스와 흰 꽃, 브리오슈 뉘앙스가 섬세한 기포와 어우러지는 샤르도네 중심의 샴페인",
+  mood:"정교하고 밝으며, 축하의 순간에도 과하지 않게 우아한 스타일",
+  tags:["SPECIAL","HARMONY","REFRESH"]},
+ {id:"W07",name:"Masi Costasera Amarone",type:"RED",price:98000,country:"Italy",grape:"Corvina Blend",acidity:3,tannin:4,body:5,aroma:5,oak:4,fresh:2,fruit:5,complex:5,novelty:3,
+  style:"말린 체리와 자두, 초콜릿과 향신료가 농밀하게 겹치고 높은 알코올과 풍부한 질감이 이어지는 아마로네",
+  mood:"진하고 관능적이며, 한 잔만으로도 분위기를 확실하게 바꾸는 스타일",
+  tags:["INDULGENCE","RICH","DEEP"]},
+ {id:"W08",name:"William Fèvre Chablis",type:"WHITE",price:65000,country:"France",grape:"Chardonnay",acidity:5,tannin:1,body:2,aroma:3,oak:1,fresh:5,fruit:2,complex:4,novelty:2,
+  style:"레몬과 청사과, 젖은 돌을 떠올리는 미네랄 향이 또렷하고 산도가 긴장감 있게 이어지는 샤블리",
+  mood:"절제되고 깨끗하며, 천천히 마실수록 섬세함이 드러나는 스타일",
+  tags:["SLOW","LIGHT","REFRESH"]},
+ {id:"W09",name:"Prosecco Superiore Brut",type:"SPARKLING",price:32000,country:"Italy",grape:"Glera",acidity:4,tannin:1,body:2,aroma:3,oak:1,fresh:5,fruit:4,complex:2,novelty:2,
+  style:"배와 사과, 흰 꽃 향에 경쾌한 기포가 더해진 드라이하고 산뜻한 프로세코",
+  mood:"부담 없이 즐겁고, 첫 잔부터 분위기를 가볍게 띄워주는 스타일",
+  tags:["JOY","CONVERSATION","LIGHT"]},
+ {id:"W10",name:"Etna Rosso",type:"RED",price:59000,country:"Italy",grape:"Nerello Mascalese",acidity:4,tannin:3,body:3,aroma:4,oak:2,fresh:4,fruit:3,complex:5,novelty:4,
+  style:"체리와 허브, 흙과 화산성 미네랄 뉘앙스가 섬세하게 이어지고 선명한 산미가 중심을 잡는 에트나 레드",
+  mood:"묵직함보다 긴장감과 복합성이 살아 있어 익숙한 레드와는 다른 인상을 주는 스타일",
+  tags:["RESET","DEEP","NOVEL"]}
+];
+
+let idx=0, answers={}, selectedCard=null, shuffledTarot=[];
+
+function switchScreen(id){
+  document.querySelectorAll(".screen").forEach(s=>s.classList.remove("active"));
+  document.getElementById(id).classList.add("active");
+  window.scrollTo({top:0,behavior:"smooth"});
+}
+function startQuiz(){ idx=0; answers={}; switchScreen("quiz"); renderQuestion(); }
+function renderQuestion(){
+  const q=questions[idx];
+  document.getElementById("stepLabel").textContent = q.group==="TASTE" ? "STEP 1 · 선호하는 맛" : "STEP 2 · 오늘의 상황";
+  document.getElementById("questionText").textContent=q.q;
+  document.getElementById("questionHelp").textContent=q.help;
+  document.getElementById("progressBar").style.width=((idx+1)/(questions.length+2)*100)+"%";
+  const box=document.getElementById("options"); box.innerHTML="";
+  q.opts.forEach((o,i)=>{
+    const b=document.createElement("button");
+    b.className="opt"+(answers[q.id]===i ? " selected":"");
+    b.textContent=o; b.onclick=()=>{answers[q.id]=i; renderQuestion();};
+    box.appendChild(b);
+  });
+}
+function nextQuestion(){
+  const q=questions[idx];
+  if(answers[q.id]===undefined){alert("하나를 골라주세요.");return;}
+  if(idx<questions.length-1){idx++;renderQuestion();} else {selectedCard=null;shuffleDeck();renderTarot();switchScreen("tarot");}
+}
+function prevQuestion(){ if(idx>0){idx--;renderQuestion();} else switchScreen("home"); }
+
+
+function tarotFaceSVG(c){
+  const symbols={
+    0:["☀","⛰","✦"],1:["∞","✦","♧"],2:["☾","◐","✦"],3:["♀","❀","♛"],4:["♜","▲","✦"],
+    5:["☩","✦","☰"],6:["♡","☀","♊"],7:["♞","✦","➜"],8:["∞","♌","♡"],9:["✦","⌂","☾"],
+    10:["☸","✦","↻"],11:["⚖","✦","⚔"],12:["↕","✦","☾"],13:["☠","✦","❀"],14:["⚗","☀","☾"],
+    15:["♑","⛓","✦"],16:["⚡","♜","☄"],17:["★","✦","≈"],18:["☾","◐","≈"],19:["☀","❀","✦"],
+    20:["♬","☀","✦"],21:["◎","✦","∞"]
+  };
+  const [a,b,d]=symbols[c.id]||["✦","☾","☀"];
+  const palettes=[
+    ["#f6e7bd","#8c3548","#26384a"],["#ead9a8","#6b2e3f","#314d42"],["#efe6cf","#3e395f","#806b38"],
+    ["#f5dfbd","#7b3546","#375442"],["#e7d4a8","#4b3d55","#8a4d3a"],["#f0e4c3","#36485f","#846739"]
+  ];
+  const p=palettes[c.id%palettes.length];
+  return `
+  <svg viewBox="0 0 180 270" role="img" aria-label="${c.ko} 카드 일러스트">
+    <rect width="180" height="270" rx="15" fill="${p[0]}"/>
+    <rect x="8" y="8" width="164" height="254" rx="12" fill="none" stroke="${p[2]}" stroke-width="2"/>
+    <circle cx="90" cy="76" r="45" fill="${p[1]}" opacity=".14"/>
+    <circle cx="90" cy="76" r="34" fill="none" stroke="${p[1]}" stroke-width="2"/>
+    <text x="90" y="91" text-anchor="middle" font-size="48" fill="${p[1]}" font-family="serif">${a}</text>
+    <path d="M38 164 Q90 112 142 164 Q90 222 38 164Z" fill="${p[2]}" opacity=".12"/>
+    <text x="58" y="178" text-anchor="middle" font-size="25" fill="${p[2]}" font-family="serif">${b}</text>
+    <text x="122" y="178" text-anchor="middle" font-size="25" fill="${p[2]}" font-family="serif">${d}</text>
+    <line x1="40" y1="215" x2="140" y2="215" stroke="${p[2]}" stroke-width="1.5" opacity=".55"/>
+    <text x="90" y="238" text-anchor="middle" font-size="13" font-weight="700" fill="${p[2]}" font-family="sans-serif">${String(c.id).padStart(2,"0")} · ${c.ko}</text>
+  </svg>`;
+}
+
+function shuffleDeck(){
+  shuffledTarot=[...tarotCards];
+  for(let i=shuffledTarot.length-1;i>0;i--){
+    const j=Math.floor(Math.random()*(i+1));
+    [shuffledTarot[i],shuffledTarot[j]]=[shuffledTarot[j],shuffledTarot[i]];
+  }
+}
+function renderTarot(){
+  if(!shuffledTarot.length) shuffleDeck();
+  const g=document.getElementById("tarotGrid"); g.innerHTML="";
+  shuffledTarot.forEach(c=>{
+    const btn=document.createElement("button");
+    btn.type="button";
+    btn.className="tarot-card"+(selectedCard?.id===c.id?" selected revealed":"");
+    btn.setAttribute("aria-label",selectedCard?.id===c.id?`${c.ko} 카드 선택됨`:"뒤집어 볼 타로 카드");
+
+    const inner=document.createElement("div");
+    inner.className="tarot-inner";
+
+    const back=document.createElement("div");
+    back.className="tarot-side tarot-back";
+
+    const face=document.createElement("div");
+    face.className="tarot-side tarot-face";
+    face.innerHTML=tarotFaceSVG(c);
+
+    inner.append(back,face);
+    btn.appendChild(inner);
+
+    btn.addEventListener("click",()=>{
+      selectedCard=c;
+      document.querySelectorAll(".tarot-card").forEach(x=>{
+        x.classList.remove("selected","revealed");
+        x.setAttribute("aria-label","뒤집어 볼 타로 카드");
+      });
+      btn.classList.add("selected","revealed");
+      btn.setAttribute("aria-label",`${c.ko} 카드 선택됨`);
+    });
+
+    g.appendChild(btn);
+  });
+}
+function drawRandom(){
+  if(!shuffledTarot.length) shuffleDeck();
+  selectedCard=shuffledTarot[Math.floor(Math.random()*shuffledTarot.length)];
+  renderTarot();
+  requestAnimationFrame(()=>{
+    const selected=document.querySelector(".tarot-card.selected");
+    if(selected) selected.scrollIntoView({block:"nearest",behavior:"smooth"});
+  });
+}
+function tasteProfile(){
+  const flavor=answers.F01 ?? 1;
+  const body=answers.F02 ?? 1;
+  const tannin=answers.F03 ?? 1;
+  const aroma=answers.F04 ?? 1;
+
+  return {
+    sweetness:[4,1,2,1][flavor],
+    acidity:[2,5,2,3][flavor],
+    body:body+1,
+    tannin:tannin+1,
+    aroma:aroma+1,
+    oak:[2,1,4,1][flavor],
+    fresh:[2,5,2,4][flavor]
+  };
+}
+
+function situationProfile(){
+  return {
+    companion:answers.S01 ?? 0,
+    occasion:answers.S02 ?? 0,
+    food:answers.S03 ?? 3,
+    mood:answers.S04 ?? 0
+  };
+}
+
+function tasteScore(w){
+  const p=tasteProfile();
+  const weights={acidity:0.22,body:0.22,tannin:0.18,aroma:0.18,oak:0.10,fresh:0.10};
+  let dist=0;
+  Object.keys(weights).forEach(k=>{ dist += Math.abs(p[k]-w[k]) * weights[k]; });
+  let score=100-(dist/4)*100;
+
+  // flavor-direction bonus
+  const f=answers.F01 ?? 1;
+  if(f===0 && w.fruit>=4) score+=5;
+  if(f===1 && w.acidity>=4 && w.fresh>=4) score+=8;
+  if(f===2 && (w.body>=4 || w.oak>=3)) score+=7;
+  if(f===3 && w.body<=3 && w.fresh>=3) score+=6;
+
+  return Math.max(0,Math.min(100,Math.round(score)));
+}
+
+function todayScore(w){
+  const s=situationProfile();
+  let score=55;
+
+  // occasion
+  if(s.occasion===0 && (w.body<=3 || w.fresh>=4)) score+=12;
+  if(s.occasion===1) score+=8;
+  if(s.occasion===2 && (w.aroma>=3 || w.fruit>=3)) score+=10;
+  if(s.occasion===3 && (w.complex>=4 || w.type==="SPARKLING")) score+=14;
+
+  // food
+  if(s.food===0 && (w.acidity>=4 || w.body<=2)) score+=15;
+  if(s.food===1 && w.body>=2 && w.body<=4) score+=12;
+  if(s.food===2 && (w.body>=4 || w.tannin>=3)) score+=16;
+  if(s.food===3) score+=5;
+
+  // mood
+  if(s.mood===0 && w.novelty<=3) score+=10;
+  if(s.mood===1 && w.fresh>=4) score+=14;
+  if(s.mood===2 && (w.complex>=4 || w.body>=4)) score+=14;
+  if(s.mood===3) score+=w.novelty*5;
+
+  return Math.min(100,score);
+}
+
+function cardScore(w,c){
+  let s=48;
+  const m=c.modifier;
+
+  if(m==="REFRESH") s += w.acidity*5+w.fresh*7-w.body*2;
+  else if(m==="INDULGENCE") s += w.body*6+w.fruit*5+w.oak*4+w.complex*2;
+  else if(m==="STRUCTURE") s += w.body*6+w.tannin*6+w.complex*3;
+  else if(m==="MYSTERY"||m==="AROMA_MYSTERY") s += w.aroma*7+w.complex*5+w.novelty*2;
+  else if(m==="JOY") s += w.fresh*6+w.fruit*6-w.tannin*2;
+  else if(m==="RESET"||m==="EXPLORE"||m==="SHOCK") s += w.novelty*10+w.complex*2;
+  else if(m==="SLOW") s += w.complex*8+w.aroma*4;
+  else if(m==="HARMONY"||m==="BALANCE") s += (6-Math.abs(w.acidity-3)-Math.abs(w.body-3))*6;
+  else if(m==="PAIRING") s += todayScore(w)*0.45;
+  else if(m==="FORWARD") s += Math.max(w.body,w.acidity,w.aroma,w.fruit)*9;
+  else if(m==="SOFT_POWER") s += w.body*6+w.fruit*3-w.tannin*1;
+  else if(m==="TRADITION") s += (6-w.novelty)*6+w.complex*4;
+  else if(m==="COMPLEXITY") s += w.complex*9+w.aroma*3;
+  else if(m==="PLEASURE") s += w.fruit*6+w.body*4+w.aroma*4;
+  else if(m==="BEST_MATCH") s += tasteScore(w)*0.5+todayScore(w)*0.25;
+  else if(m==="LUCKY") s += Math.random()*35;
+  else if(m==="SECOND_CHANCE") s += w.novelty*6+w.complex*5;
+  else if(m==="OPPOSITE"){
+    const p=tasteProfile();
+    s += Math.abs(p.body-w.body)*5 + Math.abs(p.acidity-w.acidity)*5 + w.novelty*4;
+  }
+  return Math.max(0,Math.min(100,Math.round(s)));
+}
+
+function candidates(){
+  // 8문항 버전은 절대 필터 대신 soft matching 사용.
+  // 가격 필터는 MVP 샘플 DB에서 제거하고 전체 후보를 평가.
+  return [...wines];
+}
+
+function bestTaste(){
+  return candidates()
+    .map(w=>{
+      const ts=tasteScore(w);
+      const tod=todayScore(w);
+      const score=Math.round(ts*0.72 + tod*0.28);
+      return {...w,score,tasteRaw:ts,todayRaw:tod};
+    })
+    .sort((a,b)=>b.score-a.score)[0];
+}
+
+function bestCard(excludeWineId){
+  const c=selectedCard;
+  const ranked=candidates()
+    .filter(w=>w.id!==excludeWineId)
+    .map(w=>{
+      const ts=tasteScore(w);
+      const tod=todayScore(w);
+      const cs=cardScore(w,c);
+      const novelty=w.novelty*20;
+
+      // Card recommendation is intentionally differentiated:
+      // taste 35 / today 20 / tarot 35 / novelty 10
+      let score=ts*.35 + tod*.20 + cs*.35 + novelty*.10;
+
+      // Additional diversity bonus if style differs from MY TASTE
+      const tasteWine=wines.find(x=>x.id===excludeWineId);
+      if(tasteWine){
+        if(w.type!==tasteWine.type) score+=5;
+        if(w.country!==tasteWine.country) score+=3;
+        if(w.grape!==tasteWine.grape) score+=4;
+        const styleDistance =
+          Math.abs(w.body-tasteWine.body)+
+          Math.abs(w.acidity-tasteWine.acidity)+
+          Math.abs(w.aroma-tasteWine.aroma);
+        score += Math.min(8, styleDistance*1.5);
+      }
+
+      return {...w,score:Math.min(100,Math.round(score)),cs};
+    })
+    .sort((a,b)=>b.score-a.score);
+
+  return ranked[0];
+}
+function won(w){return new Intl.NumberFormat("ko-KR").format(w.price)+"원";}
+
+function tastePreferenceText(){
+  const parts=[];
+  const f=answers.F01 ?? 1;
+  const b=answers.F02 ?? 1;
+  const t=answers.F03 ?? 1;
+  const a=answers.F04 ?? 1;
+
+  parts.push([
+    "부드럽고 과실감 있는 맛",
+    "상큼하고 산뜻한 맛",
+    "고소하고 진한 맛",
+    "깔끔하고 담백한 맛"
+  ][f]);
+
+  parts.push([
+    "가벼운 바디",
+    "부드러운 라이트~미디엄 바디",
+    "적당히 묵직한 바디",
+    "진하고 꽉 찬 바디"
+  ][b]);
+
+  if(t<=1) parts.push("강한 떫은맛은 적은 스타일");
+  else if(t===2) parts.push("적당한 탄닌");
+  else parts.push("탄닌감이 분명한 스타일");
+
+  if(a<=1) parts.push("향이 과하지 않은 와인");
+  else if(a===2) parts.push("향이 또렷한 와인");
+  else parts.push("화려한 향의 와인");
+
+  return parts.slice(0,3).join(", ");
+}
+
+function cardConnectionText(w,c){
+  const m=c.modifier;
+  const map={
+    EXPLORE:`${w.name}는 익숙한 선택에서 한 걸음 벗어나 새로운 산지와 품종의 인상을 경험하게 해준다는 점에서`,
+    COMPLEXITY:`${w.name}는 한 가지 맛보다 여러 향과 질감이 겹쳐지는 복합적인 인상이 있다는 점에서`,
+    MYSTERY:`${w.name}는 향을 천천히 따라갈수록 새로운 뉘앙스가 드러나는 섬세함이 있다는 점에서`,
+    PLEASURE:`${w.name}는 과실 풍미와 질감에서 풍성한 만족감을 준다는 점에서`,
+    STRUCTURE:`${w.name}는 맛의 중심과 구조가 분명하고 안정감 있게 이어진다는 점에서`,
+    TRADITION:`${w.name}는 산지와 품종의 전통적인 개성을 비교적 선명하게 보여준다는 점에서`,
+    PAIRING:`${w.name}는 혼자 튀기보다 음식과 사람 사이에서 자연스럽게 조화를 만든다는 점에서`,
+    FORWARD:`${w.name}는 한 모금부터 개성이 분명하고 앞으로 밀고 나가는 힘이 있다는 점에서`,
+    SOFT_POWER:`${w.name}는 힘은 있지만 거칠지 않고 부드럽게 이어지는 균형이 있다는 점에서`,
+    SLOW:`${w.name}는 서두르기보다 천천히 마실수록 복합적인 매력이 드러난다는 점에서`,
+    LUCKY:`${w.name}는 평소라면 지나쳤을 수도 있는 선택을 우연히 만나게 해준다는 점에서`,
+    BALANCE:`${w.name}는 산미와 바디, 향이 어느 한쪽으로 지나치게 치우치지 않는다는 점에서`,
+    OPPOSITE:`${w.name}는 익숙한 취향과 조금 다른 방향을 보여주어 시선을 바꿔준다는 점에서`,
+    RESET:`${w.name}는 익숙한 스타일에서 벗어나 새로운 인상을 만들어주는 전환감이 있다는 점에서`,
+    HARMONY:`${w.name}는 여러 풍미가 튀지 않고 자연스럽게 섞여 하나의 인상으로 이어진다는 점에서`,
+    INDULGENCE:`${w.name}는 향과 질감이 농밀하고 풍부해 감각적인 만족감을 강하게 준다는 점에서`,
+    SHOCK:`${w.name}는 익숙한 취향과 거리를 두면서도 개성이 강해 한 번에 인상을 바꿔놓는다는 점에서`,
+    REFRESH:`${w.name}는 선명한 산미와 신선함으로 입안과 기분을 환기해준다는 점에서`,
+    AROMA_MYSTERY:`${w.name}는 향이 한 방향으로 단순하지 않고 여러 뉘앙스로 펼쳐진다는 점에서`,
+    JOY:`${w.name}는 밝은 과실과 생기 있는 인상으로 어렵지 않게 즐거움을 준다는 점에서`,
+    SECOND_CHANCE:`${w.name}는 익숙하거나 선입견이 있었던 스타일을 다른 각도에서 다시 보게 해준다는 점에서`,
+    BEST_MATCH:`${w.name}는 지금까지 드러난 취향과 오늘의 상황을 가장 자연스럽게 하나로 묶어준다는 점에서`
+  };
+  return map[m] || `${w.name}는 오늘의 카드가 가진 분위기와 자연스럽게 연결된다는 점에서`;
+}
+
+function tasteSuggestionText(w,c){
+  const pref=tastePreferenceText();
+  const m=c.modifier;
+  const endings={
+    RESET:"익숙한 기준을 잠시 내려놓고 조금 더 낯선 한 병으로 분위기를 바꿔보는 것은 어떨까요?",
+    SHOCK:"오늘만큼은 평소의 안전한 선택보다 조금 더 강렬한 차이를 경험해보는 것은 어떨까요?",
+    EXPLORE:"오늘은 평소보다 한 걸음 더 새로운 품종이나 산지로 가보는 것은 어떨까요?",
+    INDULGENCE:"오늘만큼은 평소보다 조금 더 진하고 풍성한 맛을 즐겨보는 것은 어떨까요?",
+    REFRESH:"오늘은 평소보다 조금 더 산뜻하고 맑은 방향으로 기분을 환기해보는 것은 어떨까요?",
+    JOY:"오늘은 어렵게 고민하기보다 밝고 즐거운 한 병을 가볍게 즐겨보는 것은 어떨까요?",
+    SLOW:"오늘은 천천히 향이 열리는 와인과 시간을 길게 가져보는 것은 어떨까요?",
+    SECOND_CHANCE:"오늘은 평소 지나쳤던 스타일에 한 번 더 기회를 줘보는 것은 어떨까요?"
+  };
+  return `평소 ${pref}을 선호했다면, ${endings[m] || "오늘은 그 취향을 유지하되 카드가 제안하는 방향으로 살짝 변화를 줘보는 것은 어떨까요?"}`;
+}
+
+function myTasteDescription(w){
+  const pref=tastePreferenceText();
+  return `${w.name}는 ${w.style}이에요. ${w.mood}이라 ${pref}을 선호하는 현재 취향과 자연스럽게 잘 맞아요.`;
+}
+
+function myCardDescription(w,c){
+  return `${w.name}는 ${w.style}이에요. ${cardConnectionText(w,c)} ${c.ko} 카드의 '${c.keyword}' 키워드와 잘 어울려요. ${tasteSuggestionText(w,c)}`;
+}
+
+function showResult(){
+  if(!selectedCard){alert("카드를 한 장 골라주세요.");return;}
+  const t=bestTaste(), c=bestCard(t.id);
+  document.getElementById("cardMeaning").innerHTML=`<b>${selectedCard.ko} · ${selectedCard.name}</b><br>${selectedCard.keyword}<br><span style="opacity:.75;font-size:13px">오늘의 추천 방향: ${selectedCard.modifier}</span>`;
+  document.getElementById("tasteName").textContent=t.name;
+  document.getElementById("tasteMeta").textContent=`${t.country} · ${t.grape} · ${won(t)}`;
+  document.getElementById("tasteScore").textContent=t.score+"점";
+  document.getElementById("tasteBar").style.width=t.score+"%";
+  document.getElementById("tasteReason").textContent=myTasteDescription(t);
+  document.getElementById("cardName").textContent=c.name;
+  document.getElementById("cardMeta").textContent=`${c.country} · ${c.grape} · ${won(c)}`;
+  document.getElementById("cardScore").textContent=c.score+"점";
+  document.getElementById("cardBar").style.width=c.score+"%";
+  document.getElementById("cardReason").textContent=myCardDescription(c,selectedCard);
+  switchScreen("result");
+}
+function saveProfile(){
+  localStorage.setItem("todaysBottleProfile",JSON.stringify({answers,selectedCard}));
+  document.getElementById("statusPill").textContent="취향 저장됨";
+  alert("이 브라우저에 취향을 저장했어요.");
+}
+function restart(){idx=0;answers={};selectedCard=null;shuffledTarot=[];switchScreen("home");}
+
+</script>
+</body>
+</html>
