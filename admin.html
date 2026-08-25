@@ -1,0 +1,244 @@
+<!doctype html>
+<html lang="ko">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>오늘의 병 · Wine Admin</title>
+<style>
+:root{--bg:#f5efe7;--panel:#fffaf3;--ink:#2d2421;--muted:#7c7069;--wine:#702b3e;--wine2:#4b1f2c;--gold:#b89b67;--line:#e1d5c7;--ok:#3e6b54;--bad:#9e4050}
+*{box-sizing:border-box}body{margin:0;background:var(--bg);color:var(--ink);font-family:ui-sans-serif,-apple-system,BlinkMacSystemFont,"Segoe UI","Noto Sans KR",sans-serif}
+.wrap{max-width:1180px;margin:0 auto;padding:32px 20px 70px}
+header{display:flex;gap:16px;align-items:end;justify-content:space-between;margin-bottom:24px;flex-wrap:wrap}
+.eyebrow{font-size:12px;letter-spacing:.14em;color:var(--wine);font-weight:800}.title{font-family:Georgia,serif;font-size:36px;margin:4px 0}.sub{color:var(--muted);line-height:1.7}
+.card{background:var(--panel);border:1px solid var(--line);border-radius:22px;padding:22px;margin-bottom:18px}
+.grid{display:grid;grid-template-columns:1fr 1fr;gap:16px}.grid3{display:grid;grid-template-columns:repeat(3,1fr);gap:12px}
+label{display:block;font-size:12px;font-weight:800;margin-bottom:7px;color:#5c5049}
+input,textarea,select{width:100%;border:1px solid var(--line);border-radius:12px;background:#fff;padding:12px 13px;font:inherit;color:var(--ink);outline:none}
+input:focus,textarea:focus,select:focus{border-color:var(--wine);box-shadow:0 0 0 3px #702b3e18}textarea{min-height:140px;resize:vertical}
+button{border:0;border-radius:12px;padding:12px 16px;font-weight:800;cursor:pointer}.primary{background:var(--wine);color:white}.primary:hover{background:var(--wine2)}.ghost{background:#eee4d8;color:var(--ink)}
+.row{display:flex;gap:10px;align-items:center;flex-wrap:wrap}.status{font-size:13px;color:var(--muted)}.ok{color:var(--ok)}.bad{color:var(--bad)}
+.section-title{font-size:18px;font-weight:900;margin:0 0 14px}
+.metric{background:#fff;border:1px solid var(--line);border-radius:14px;padding:12px}.metric input{margin-top:8px}.metric b{font-size:13px}
+.tags{display:grid;grid-template-columns:1fr 1fr 1fr;gap:12px}
+.table{width:100%;border-collapse:collapse;font-size:13px}.table th,.table td{text-align:left;padding:10px;border-bottom:1px solid var(--line);vertical-align:top}.badge{display:inline-block;padding:4px 8px;border-radius:999px;background:#eee4d8;font-size:11px}.badge.live{background:#dcebdd;color:#315941}
+.note{font-size:12px;color:var(--muted);line-height:1.65}.hidden{display:none}
+@media(max-width:760px){.grid,.grid3,.tags{grid-template-columns:1fr}.title{font-size:30px}.card{padding:17px}.table-wrap{overflow:auto}.table{min-width:760px}}
+</style>
+</head>
+<body>
+<div class="wrap">
+<header>
+  <div>
+    <div class="eyebrow">TODAY'S BOTTLE · ADMIN</div>
+    <h1 class="title">Wine Curator</h1>
+    <div class="sub">원천 정보를 넣고 → AI로 구조화하고 → 사람이 검수한 뒤 → 추천 DB에 승인합니다.</div>
+  </div>
+  <a href="/" style="color:var(--wine);font-weight:800;text-decoration:none">사용자 앱 보기 →</a>
+</header>
+
+<section class="card">
+  <h2 class="section-title">관리자 연결</h2>
+  <div class="grid">
+    <div><label>ADMIN KEY</label><input id="adminKey" type="password" autocomplete="current-password" placeholder="Vercel ADMIN_KEY"></div>
+    <div class="row" style="align-items:end"><button class="ghost" id="rememberKey">이 브라우저에 기억</button><span id="authStatus" class="status"></span></div>
+  </div>
+  <p class="note">키는 이 브라우저의 sessionStorage에만 저장됩니다. GitHub 코드에 ADMIN_KEY나 OPENAI_API_KEY를 직접 넣지 마세요.</p>
+</section>
+
+<section class="card">
+  <h2 class="section-title">1. 와인 원천 정보</h2>
+  <div class="grid">
+    <div><label>와인 이름 *</label><input id="wineName" placeholder="예: Pazo de Señorans Albariño"></div>
+    <div><label>출처 URL</label><input id="sourceUrl" type="url" placeholder="생산자·수입사·판매처 URL"></div>
+  </div>
+  <div style="margin-top:14px">
+    <label>출처의 와인 설명 / 테크니컬 시트 내용</label>
+    <textarea id="sourceText" placeholder="공식 설명, 품종, 산지, 테이스팅 노트, 가격 등 검증 가능한 내용을 붙여 넣으세요."></textarea>
+  </div>
+  <div class="row" style="margin-top:14px">
+    <button class="primary" id="analyzeBtn">AI로 분석하기</button>
+    <span id="analyzeStatus" class="status">AI는 출처를 대신 만들지 않고, 입력된 정보를 추천 DB 형식으로 변환합니다.</span>
+  </div>
+</section>
+
+<section class="card hidden" id="reviewCard">
+  <div class="row" style="justify-content:space-between">
+    <h2 class="section-title">2. AI 분석 결과 검수</h2>
+    <span id="confidenceBadge" class="badge"></span>
+  </div>
+
+  <div class="grid3">
+    <div><label>와인명</label><input data-field="wine_name"></div>
+    <div><label>생산자</label><input data-field="producer"></div>
+    <div><label>타입</label><select data-field="wine_type"><option>RED</option><option>WHITE</option><option>SPARKLING</option><option>ROSE</option><option>ORANGE</option></select></div>
+    <div><label>국가</label><input data-field="country"></div>
+    <div><label>산지</label><input data-field="region"></div>
+    <div><label>품종</label><input data-field="grape"></div>
+    <div><label>빈티지</label><input data-field="vintage"></div>
+    <div><label>가격(원)</label><input data-field="price_krw" type="number" min="0"></div>
+    <div><label>블렌드</label><select data-field="blend_yn"><option value="false">아니오</option><option value="true">예</option></select></div>
+  </div>
+
+  <h3 style="margin:24px 0 10px;font-size:15px">추천 엔진 속성 · 1~5</h3>
+  <div class="grid3" id="metrics"></div>
+
+  <div class="tags" style="margin-top:16px">
+    <div><label>향 계열 · 쉼표로 구분</label><input data-field="aroma_family"></div>
+    <div><label>음식 태그 · 쉼표로 구분</label><input data-field="food_pairing_tags"></div>
+    <div><label>상황 태그 · 쉼표로 구분</label><input data-field="occasion_tags"></div>
+  </div>
+
+  <div class="grid" style="margin-top:16px">
+    <div><label>와인 설명</label><textarea data-field="style_description"></textarea></div>
+    <div><label>마시는 인상</label><textarea data-field="mood_description"></textarea></div>
+  </div>
+
+  <div class="row" style="margin-top:16px">
+    <label style="margin:0"><input id="verified" type="checkbox" style="width:auto"> 검수 완료 — 사용자 추천 후보에 바로 포함</label>
+  </div>
+
+  <div class="row" style="margin-top:18px">
+    <button class="primary" id="saveBtn">DB에 저장</button>
+    <button class="ghost" id="reanalyzeBtn">다시 AI 분석</button>
+    <span id="saveStatus" class="status"></span>
+  </div>
+</section>
+
+<section class="card">
+  <div class="row" style="justify-content:space-between">
+    <h2 class="section-title">3. Wine DB</h2>
+    <button class="ghost" id="refreshBtn">새로고침</button>
+  </div>
+  <div id="dbStatus" class="status" style="margin-bottom:10px">ADMIN KEY를 입력한 뒤 목록을 불러올 수 있습니다.</div>
+  <div class="table-wrap">
+    <table class="table">
+      <thead><tr><th>ID</th><th>와인</th><th>타입</th><th>산지/품종</th><th>가격</th><th>AI 신뢰도</th><th>상태</th></tr></thead>
+      <tbody id="wineRows"></tbody>
+    </table>
+  </div>
+</section>
+</div>
+
+<script>
+const $=s=>document.querySelector(s);
+const fields={};
+let analyzed=null;
+let aiModel="";
+const metricNames=[
+  ["sweetness","당도"],["acidity","산도"],["tannin","탄닌"],["body","바디"],
+  ["alcohol","알코올감"],["fruit_intensity","과실 강도"],["aroma_intensity","향 강도"],
+  ["oak_intensity","오크"],["freshness","신선함"],["mineral","미네랄"],
+  ["complexity","복합도"],["novelty_level","새로움"],["approachability","접근성"],["traditional_score","전통성"]
+];
+
+function key(){return $("#adminKey").value.trim()}
+function headers(){return {"Content-Type":"application/json","x-admin-key":key()}}
+function status(el,text,type=""){el.textContent=text;el.className="status "+type}
+function csv(v){return Array.isArray(v)?v.join(", "):(v||"")}
+function arr(v){return String(v||"").split(",").map(x=>x.trim()).filter(Boolean)}
+
+metricNames.forEach(([name,label])=>{
+  const d=document.createElement("div");d.className="metric";
+  d.innerHTML=`<b>${label}</b><input type="number" min="1" max="5" step="1" data-field="${name}">`;
+  $("#metrics").appendChild(d);
+});
+document.querySelectorAll("[data-field]").forEach(el=>fields[el.dataset.field]=el);
+
+$("#adminKey").value=sessionStorage.getItem("todayBottleAdminKey")||"";
+$("#rememberKey").addEventListener("click",()=>{
+  sessionStorage.setItem("todayBottleAdminKey",key());
+  status($("#authStatus"),"이 탭이 열려 있는 동안 기억합니다.","ok");
+});
+
+function fillForm(w){
+  analyzed=w;
+  Object.entries(fields).forEach(([name,el])=>{
+    let v=w[name];
+    if(["aroma_family","food_pairing_tags","occasion_tags"].includes(name)) v=csv(v);
+    if(name==="blend_yn") v=String(!!v);
+    el.value=v ?? "";
+  });
+  $("#confidenceBadge").textContent=`AI confidence ${Math.round((w.ai_confidence||0)*100)}%`;
+  $("#reviewCard").classList.remove("hidden");
+  $("#reviewCard").scrollIntoView({behavior:"smooth",block:"start"});
+}
+
+function collect(){
+  const w={};
+  Object.entries(fields).forEach(([name,el])=>{
+    let v=el.value;
+    if(metricNames.some(([n])=>n===name) || name==="price_krw") v=Number(v)||0;
+    if(name==="blend_yn") v=v==="true";
+    if(["aroma_family","food_pairing_tags","occasion_tags"].includes(name)) v=arr(v);
+    w[name]=v;
+  });
+  w.source_url=$("#sourceUrl").value.trim();
+  w.source_text=$("#sourceText").value.trim();
+  w.ai_model=aiModel;
+  w.ai_confidence=analyzed?.ai_confidence||0;
+  w.verified=$("#verified").checked;
+  return w;
+}
+
+async function analyze(){
+  const wine_name=$("#wineName").value.trim();
+  if(!key()) return status($("#analyzeStatus"),"ADMIN KEY를 먼저 입력해 주세요.","bad");
+  if(!wine_name) return status($("#analyzeStatus"),"와인 이름을 입력해 주세요.","bad");
+  $("#analyzeBtn").disabled=true;
+  status($("#analyzeStatus"),"AI가 와인 정보를 추천 엔진 속성으로 변환 중…");
+  try{
+    const r=await fetch("/api/admin/analyze-wine",{
+      method:"POST",headers:headers(),
+      body:JSON.stringify({wine_name,source_url:$("#sourceUrl").value.trim(),source_text:$("#sourceText").value.trim()})
+    });
+    const d=await r.json();
+    if(!r.ok) throw new Error(d.error||"분석 실패");
+    aiModel=d.model||"";
+    fillForm(d.wine);
+    status($("#analyzeStatus"),"분석 완료. 아래 값을 검수해 주세요.","ok");
+  }catch(e){status($("#analyzeStatus"),e.message,"bad")}
+  finally{$("#analyzeBtn").disabled=false}
+}
+
+async function saveWine(){
+  if(!key()) return status($("#saveStatus"),"ADMIN KEY가 필요합니다.","bad");
+  const body=collect();
+  $("#saveBtn").disabled=true;status($("#saveStatus"),"DB에 저장 중…");
+  try{
+    const r=await fetch("/api/admin/wines",{method:"POST",headers:headers(),body:JSON.stringify(body)});
+    const d=await r.json();
+    if(!r.ok) throw new Error(d.error||"저장 실패");
+    status($("#saveStatus"),body.verified?"저장 완료. 이제 사용자 추천 후보에 포함됩니다.":"임시 저장 완료. 검수 승인 전에는 추천에 나오지 않습니다.","ok");
+    await loadWines();
+  }catch(e){status($("#saveStatus"),e.message,"bad")}
+  finally{$("#saveBtn").disabled=false}
+}
+
+async function loadWines(){
+  if(!key()) return status($("#dbStatus"),"ADMIN KEY를 입력해 주세요.","bad");
+  status($("#dbStatus"),"DB를 불러오는 중…");
+  try{
+    const r=await fetch("/api/admin/wines",{headers:{"x-admin-key":key()}});
+    const d=await r.json();
+    if(!r.ok) throw new Error(d.error||"조회 실패");
+    $("#wineRows").innerHTML="";
+    d.wines.forEach(w=>{
+      const tr=document.createElement("tr");
+      tr.innerHTML=`<td>${w.id}</td><td><b>${w.wine_name}</b><br><span style="color:var(--muted)">${w.producer||""}</span></td>
+      <td>${w.wine_type}</td><td>${w.country||""} ${w.region||""}<br>${w.grape||""}</td>
+      <td>${Number(w.price_krw||0).toLocaleString("ko-KR")}원</td>
+      <td>${Math.round(Number(w.ai_confidence||0)*100)}%</td>
+      <td><span class="badge ${w.verified?"live":""}">${w.verified?"추천 사용 중":"검수 대기"}</span></td>`;
+      $("#wineRows").appendChild(tr);
+    });
+    status($("#dbStatus"),`${d.wines.length}병을 불러왔습니다.`,"ok");
+  }catch(e){status($("#dbStatus"),e.message,"bad")}
+}
+
+$("#analyzeBtn").addEventListener("click",analyze);
+$("#reanalyzeBtn").addEventListener("click",analyze);
+$("#saveBtn").addEventListener("click",saveWine);
+$("#refreshBtn").addEventListener("click",loadWines);
+</script>
+</body>
+</html>
